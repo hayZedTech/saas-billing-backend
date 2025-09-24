@@ -1,4 +1,3 @@
-// index.js (fixed ordering)
 require("dotenv").config(); // load env first
 
 const express = require("express");
@@ -19,18 +18,23 @@ const PORT = process.env.PORT || 5000;
 console.log("STRIPE_SECRET_KEY loaded:", !!process.env.STRIPE_SECRET_KEY);
 console.log("STRIPE_WEBHOOK_SECRET loaded:", !!process.env.STRIPE_WEBHOOK_SECRET);
 
-// Allow CORS early
-app.use(cors());
+// Allow CORS early with frontend origin
+app.use(
+  cors({
+    origin: "https://saas-billing-frontend.vercel.app",
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    credentials: true,
+  })
+);
 
 // IMPORTANT: register the webhook route with express.raw BEFORE express.json()
-// This ensures Stripe events come through as raw bytes for signature verification.
 app.post(
   "/api/webhooks/stripe",
   express.raw({ type: "application/json" }),
   handleStripeWebhook
 );
 
-// Now register JSON body parser for all other routes
+// JSON parser for all other routes
 app.use(express.json());
 
 // DB test (optional)
@@ -39,7 +43,7 @@ pool.query("SELECT NOW()", (err, res) => {
   else console.log("✅ DB Connected at:", res.rows[0].now);
 });
 
-// App routes (normal routes which want parsed JSON)
+// App routes
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/billing", billingRoutes);
